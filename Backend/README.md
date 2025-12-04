@@ -109,3 +109,84 @@ Notes:
 - The login route's validation is defined in `routes/user.routes.js` using `express-validator`.
 - The controller returns `401` for authentication failures (invalid credentials).
 - If you want, I can add example `curl` and Postman snippets for this endpoint as well.
+
+---
+
+# Users API - Profile Endpoint
+
+Endpoint: `GET /users/profile`
+
+Description:
+
+- Retrieves the authenticated user's profile information.
+
+Request Headers:
+
+- `Content-Type: application/json`
+- `Authorization: Bearer <token>` (or `token` cookie set during login)
+
+Request Body:
+
+- No body required.
+
+Authentication:
+
+- **Required:** This endpoint requires a valid JWT token passed via `Authorization` header or `token` cookie.
+- Validated by `authMiddleware.authUser` middleware.
+
+Responses:
+
+- `200 OK` — Profile retrieved successfully.
+  - Body: User object `{ _id, fullname, email, socketId, ... }` (password not included)
+- `401 Unauthorized` — Missing or invalid token.
+  - Body: `{ "message": "Unauthorized" }` or similar (depends on middleware implementation)
+- `500 Internal Server Error` — Unexpected server error.
+
+Notes / Implementation details:
+
+- The endpoint is protected by `authMiddleware.authUser`, which verifies the JWT and attaches the user object to `req.user`.
+- The controller simply returns `req.user` at status `200`.
+- No validation rules; authentication middleware handles security.
+
+---
+
+# Users API - Logout Endpoint
+
+Endpoint: `GET /users/logout`
+
+Description:
+
+- Logs out the authenticated user by clearing the authentication token and blacklisting it for future use.
+
+Request Headers:
+
+- `Authorization: Bearer <token>` (or `token` cookie set during login)
+
+Request Body:
+
+- No body required.
+
+Authentication:
+
+- **Required:** This endpoint requires a valid JWT token passed via `Authorization` header or `token` cookie.
+- Validated by `authMiddleware.authUser` middleware.
+
+Behavior / Implementation details:
+
+- The controller clears the `token` cookie.
+- Extracts the token from the `Authorization` header or cookie.
+- Adds the token to a blacklist in the database (`blackListTokenModel`) to prevent reuse.
+
+Responses:
+
+- `200 OK` — Logout successful.
+  - Body: `{ "message": "Logged out Successfully" }`
+- `401 Unauthorized` — Missing or invalid token.
+  - Body: `{ "message": "Unauthorized" }` or similar (depends on middleware implementation)
+- `500 Internal Server Error` — Unexpected server error.
+
+Notes:
+
+- The endpoint is protected by `authMiddleware.authUser` middleware.
+- Token blacklisting prevents the token from being used again, even if it hasn't expired.
+- The `blackListTokenModel` should be checked during authentication to ensure blacklisted tokens are rejected.
