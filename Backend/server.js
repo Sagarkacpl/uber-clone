@@ -1,5 +1,5 @@
 const http = require('http');
-const app = require('./app'); // Import Express app
+const app = require('./app');
 
 const server = http.createServer(app);
 
