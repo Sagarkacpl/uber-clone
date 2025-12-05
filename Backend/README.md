@@ -190,3 +190,80 @@ Notes:
 - The endpoint is protected by `authMiddleware.authUser` middleware.
 - Token blacklisting prevents the token from being used again, even if it hasn't expired.
 - The `blackListTokenModel` should be checked during authentication to ensure blacklisted tokens are rejected.
+
+---
+
+# Captain API - Register Endpoint
+
+Endpoint: `POST /captain/register`
+
+Description:
+
+- Registers a new captain (driver) and returns an authentication token and the created captain object.
+- Validates captain credentials and vehicle information.
+
+Request Headers:
+
+- `Content-Type: application/json`
+
+Request Body (JSON):
+
+- `fullname` (object):
+  - `firstname` (string, required): minimum 6 characters.
+  - `lastname` (string, optional): if provided, minimum 6 characters.
+- `email` (string, required): valid email address, minimum 10 characters, must be unique.
+- `password` (string, required): minimum 6 characters.
+- `vehicle` (object, required):
+  - `color` (string, required): minimum 3 characters. Vehicle color.
+  - `plate` (string, required): minimum 3 characters. Vehicle registration plate number.
+  - `capacity` (number, required): minimum 2 seats. Number of seats in the vehicle.
+  - `vehicleType` (string, required): enum `['car', 'motercycle', 'auto']`. Type of vehicle.
+
+Example Request Body:
+
+```json
+{
+  "fullname": {
+    "firstname": "captain_firstname",
+    "lastname": "captain_lastname"
+  },
+  "email": "captain_email@test.com",
+  "password": "securePassword",
+  "vehicle": {
+    "color": "red",
+    "plate": "DL 04 X 1234",
+    "capacity": 3,
+    "vehicleType": "car"
+  }
+}
+```
+
+Validation Rules (as implemented):
+
+- `fullname.firstname` is required and must be at least 6 characters.
+- `email` must be a valid email format and minimum 10 characters.
+- `password` must be at least 6 characters.
+- `vehicle.color` must be at least 3 characters.
+- `vehicle.plate` must be at least 3 characters.
+- `vehicle.capacity` must be an integer with minimum value of 2.
+- `vehicle.vehicleType` must be one of: `car`, `motercycle`, or `auto`.
+
+Responses:
+
+- `201 Created` — Registration successful.
+  - Body: `{ "token": "<jwt>", "captain": { ... } }`
+  - The captain object includes fullname, email, vehicle details, and status (defaults to `inactive`).
+  - Password field is included in response (hashed).
+- `400 Bad Request` — Validation failed or captain already registered with that email.
+  - Body: `{ "errors": [ { "msg": "...", "param": "...", ... } ] }` (validation errors)
+  - Body: `{ "message": "Captain is already registered" }` (duplicate email)
+- `500 Internal Server Error` — Unexpected server or database error.
+
+Notes / Implementation details:
+
+- The route's validation is defined in `routes/captain.routes.js` using `express-validator`.
+- The controller `controllers/captain.controller.js` checks if captain already exists by email before registration.
+- Passwords are hashed via `models/captain.model.js` before being saved.
+- Captain's initial `status` is set to `inactive` by default in the model.
+- JWT token includes captain's `_id` and expires in 24 hours.
+- The response includes the hashed password; consider removing it on production for security.
