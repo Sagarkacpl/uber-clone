@@ -16,9 +16,9 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
 
-app.get('/', (req, res) => {
-    res.send('HELLO WORLD');
-})
+// app.get('/', (req, res) => {
+//     res.send('HELLO WORLD');
+// })
 
 app.use('/users', userRoutes);
 app.use('/captain', captainRoutes);

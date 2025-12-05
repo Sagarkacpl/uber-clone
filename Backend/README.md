@@ -267,3 +267,140 @@ Notes / Implementation details:
 - Captain's initial `status` is set to `inactive` by default in the model.
 - JWT token includes captain's `_id` and expires in 24 hours.
 - The response includes the hashed password; consider removing it on production for security.
+
+---
+
+# Captain API - Login Endpoint
+
+Endpoint: `POST /captain/login`
+
+Description:
+
+- Authenticates an existing captain and returns an authentication token and the captain object.
+
+Request Headers:
+
+- `Content-Type: application/json`
+
+Request Body (JSON):
+
+- `email` (string, required): valid email address.
+- `password` (string, required): captain's password (minimum 6 characters).
+
+Example Request Body:
+
+```json
+{
+  "email": "captain_email@test.com",
+  "password": "securePassword"
+}
+```
+
+Validation Rules (as implemented):
+
+- `email` must be a valid email format.
+- `password` must be at least 6 characters.
+
+Behavior / Implementation details:
+
+- The controller `controllers/captain.controller.js` looks up the captain by email and selects the stored (hashed) password for comparison.
+- If the captain is found and the password matches, a JWT is generated via the model method and returned along with the captain object.
+- Sets a `token` cookie for session management.
+
+Responses:
+
+- `200 OK` — Login successful.
+  - Body: `{ "token": "<jwt>", "captain": { ... } }`
+- `400 Bad Request` — Validation failed or captain not found.
+  - Body: `{ "errors": [ { "msg": "...", "param": "...", ... } ] }` (validation errors)
+  - Body: `{ "message": "Invalid email and password" }` (captain not found)
+- `401 Unauthorized` — Password mismatch.
+  - Body: `{ "message": "Invalid email or password" }`
+- `500 Internal Server Error` — Unexpected server or database error.
+
+Notes:
+
+- The login route's validation is defined in `routes/captain.routes.js` using `express-validator`.
+- The controller returns `401` for authentication failures (password mismatch).
+
+---
+
+# Captain API - Profile Endpoint
+
+Endpoint: `GET /captain/profile`
+
+Description:
+
+- Retrieves the authenticated captain's profile information including vehicle details and status.
+
+Request Headers:
+
+- `Content-Type: application/json`
+- `Authorization: Bearer <token>` (or `token` cookie set during login)
+
+Request Body:
+
+- No body required.
+
+Authentication:
+
+- **Required:** This endpoint requires a valid JWT token passed via `Authorization` header or `token` cookie.
+- Validated by `authMiddleware.authCaptain` middleware.
+
+Responses:
+
+- `200 OK` — Profile retrieved successfully.
+  - Body: Captain object `{ _id, fullname, email, vehicle, status, socketId, ... }` (password not included)
+- `401 Unauthorized` — Missing or invalid token.
+  - Body: `{ "message": "Unauthorized Access" }`
+- `500 Internal Server Error` — Unexpected server error.
+
+Notes / Implementation details:
+
+- The endpoint is protected by `authMiddleware.authCaptain`, which verifies the JWT and attaches the captain object to `req.captain`.
+- The controller simply returns `req.captain` at status `200`.
+- No validation rules; authentication middleware handles security.
+- Captain's vehicle information is included in the response.
+
+---
+
+# Captain API - Logout Endpoint
+
+Endpoint: `GET /captain/logout`
+
+Description:
+
+- Logs out the authenticated captain by clearing the authentication token and blacklisting it for future use.
+
+Request Headers:
+
+- `Authorization: Bearer <token>` (or `token` cookie set during login)
+
+Request Body:
+
+- No body required.
+
+Authentication:
+
+- **Required:** This endpoint requires a valid JWT token passed via `Authorization` header or `token` cookie.
+- Validated by `authMiddleware.authCaptain` middleware.
+
+Behavior / Implementation details:
+
+- The controller clears the `token` cookie.
+- Extracts the token from the `Authorization` header or cookie.
+- Adds the token to a blacklist in the database (`blackListTokenModel`) to prevent reuse.
+
+Responses:
+
+- `200 OK` — Logout successful.
+  - Body: `{ "message": "Logged out Successfully" }`
+- `401 Unauthorized` — Missing or invalid token.
+  - Body: `{ "message": "Unauthorized Access" }`
+- `500 Internal Server Error` — Unexpected server error.
+
+Notes:
+
+- The endpoint is protected by `authMiddleware.authCaptain` middleware.
+- Token blacklisting prevents the token from being used again, even if it hasn't expired.
+- The `blackListTokenModel` should be checked during authentication to ensure blacklisted tokens are rejected.

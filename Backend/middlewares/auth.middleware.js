@@ -2,6 +2,7 @@ const userModels = require('../models/user.models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const blackListTokenModel = require('../models/blackListToken.model');
+const captainModels = require('../models/captain.model');
 
 
 module.exports.authUser = async (req, res, next) => {
@@ -11,10 +12,7 @@ module.exports.authUser = async (req, res, next) => {
         return res.status(401).json({message: "Unauthorized Access"});
     }
 
-    // check if user logged out and user have already token in local storage
-    
-    // const isBlacklisted = await userModels.findOne({token: token});
-    
+    // check if user logged out and user have already token in local storage    
     const isBlacklisted = await blackListTokenModel.findOne({token: token});
     if(isBlacklisted){
         return res.status(401).json({message: "Unauthorized Access"});
@@ -34,4 +32,29 @@ module.exports.authUser = async (req, res, next) => {
         return res.status(401).json({message: "Unauthorized Access"});
     }
 
+}
+
+module.exports.authCaptain = async (req, res, next) => {
+
+    // first we get token from cookies and headers when user loggedin
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[ 1 ];
+    if(!token){
+        return res.status(401).json({message: "Unauthorized Access"});
+    }
+
+    // check if user logged out and user have already token in local storage    
+    const isBlacklisted = await blackListTokenModel.findOne({token: token});
+    if(isBlacklisted){
+        return res.status(401).json({message: "Unauthorized Access"});
+    }
+
+
+    try{
+        const decode = jwt.verify(token, process.env.JWT_SECRET);
+        const captain = await captainModels.findById(decode._id);
+        req.captain = captain;
+        return next();
+    } catch (err){
+        return res.status(401).json({message: "Unauthorized Access"});
+    }
 }
