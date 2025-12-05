@@ -10,6 +10,7 @@ const capitanSchema = new mongoose.Schema({
     password: {type: String,required : true,select: false},
     
     socketId: {type: String},
+
     status:{type: String,emun: ['active', 'inactive'],default: 'inactive'},
 
     vehicle: {
