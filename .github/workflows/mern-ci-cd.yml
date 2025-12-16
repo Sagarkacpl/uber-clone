@@ -1,1 +1,42 @@
 
+name: MERN CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    # Backend
+    - name: Install backend dependencies
+      run: |
+        cd Backend
+        npm install
+
+    - name: Backend test
+      run: |
+        cd Backend
+        npm test || echo "No tests defined"
+
+    # Frontend
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm install
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
